@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Hyper-Alpha-Arena V2{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="site-header">
+<div class="header-left">
+<span class="logo">&#9889;</span>
+<h1>Hyper-Alpha-Arena <span class="version">v2</span></h1>
+</div>
+<div class="header-center">
+<span class="mode-badge {{ status.mode|lower }}">{{ status.mode.upper() }}</span>
+<span class="status-badge {{ 'running' if status.running else 'stopped' }}">
+{{ '&#127775; Running' if status.running else '&#128308; Stopped' }}
+</span>
+</div>
+<div class="header-right">
+<form action="/api/stop" method="post" onsubmit="return confirm('EMERGENCY STOP?');">
+<button type="submit" class="btn-emergency">&#128721; STOP</button>
+</form>
+</div>
+</header>
+
+<nav class="tab-nav">
+<a href="/" class="tab-link {{ 'active' if active_tab == 'overview' else '' }}">Overview</a>
+<a href="/positions" class="tab-link {{ 'active' if active_tab == 'positions' else '' }}">Positions</a>
+<a href="/history" class="tab-link {{ 'active' if active_tab == 'history' else '' }}">History</a>
+<a href="/signals" class="tab-link {{ 'active' if active_tab == 'signals' else '' }}">Signals</a>
+<a href="/risk" class="tab-link {{ 'active' if active_tab == 'risk' else '' }}">Risk</a>
+<a href="/config" class="tab-link {{ 'active' if active_tab == 'config' else '' }}">Config</a>
+<a href="/logs" class="tab-link {{ 'active' if active_tab == 'logs' else '' }}">Logs</a>
+</nav>
+
+<main class="content">
+{% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+<span>Hyper-Alpha-Arena V2 &mdash; AI Crypto Trading Bot</span>
+<span class="footer-right">Auto-refresh every 5s</span>
+</footer>
+
+<script>
+// Auto-refresh every 5 seconds
+setInterval(() => {
+  fetch('/api/status')
+    .then(r => r.json())
+    .then(data => {
+      // Update header badges
+      const modeBadge = document.querySelector('.mode-badge');
+      const statusBadge = document.querySelector('.status-badge');
+      if (modeBadge) {
+        modeBadge.textContent = (data.mode || 'PAPER').toUpperCase();
+        modeBadge.className = 'mode-badge ' + (data.mode || 'paper').toLowerCase();
+      }
+      if (statusBadge) {
+        const running = data.running;
+        statusBadge.innerHTML = running ? '&#127775; Running' : '&#128308; Stopped';
+        statusBadge.className = 'status-badge ' + (running ? 'running' : 'stopped');
+      }
+    })
+    .catch(() => {});
+}, 5000);
+</script>
+</body>
+</html>

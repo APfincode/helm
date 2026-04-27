@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Risk &mdash; Hyper-Alpha-Arena{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+<h2>&#128737;&#65039; Risk Guard Status</h2>
+
+<div class="risk-header">
+<span class="risk-status {{ 'halted' if risk.halted else 'active' }}">
+{{ '&#128308; HALTED' if risk.halted else '&#9989; ACTIVE' }}
+</span>
+{% if risk.halt_reason %}
+<span class="halt-reason">{{ risk.halt_reason }}</span>
+{% endif %}
+</div>
+
+<table class="data-table">
+<thead>
+<tr>
+<th>Circuit Breaker</th>
+<th>Limit</th>
+<th>Current</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+{% for cb in risk.circuit_breakers %}
+<tr>
+<td>{{ cb.name }}</td>
+<td>{{ cb.limit }}</td>
+<td>{{ cb.current }}</td>
+<td>
+<span class="badge {{ cb.status }}">{{ cb.status.upper() }}</span>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Meters</h3>
+<div class="meter-grid">
+<div class="meter">
+<div class="meter-label">Max Drawdown</div>
+<div class="meter-bar">
+<div class="meter-fill {{ 'warning' if risk.current_drawdown_pct > risk.max_drawdown_pct * 0.5 else '' }} {{ 'danger' if risk.current_drawdown_pct > risk.max_drawdown_pct * 0.8 else '' }}"
+     style="width:{{ (risk.current_drawdown_pct / risk.max_drawdown_pct * 100)|min(100) }}%"></div>
+</div>
+<div class="meter-value">{{ "{:.1f}".format(risk.current_drawdown_pct) }}% / {{ "{:.1f}".format(risk.max_drawdown_pct) }}%</div>
+</div>
+
+<div class="meter">
+<div class="meter-label">Daily Loss</div>
+<div class="meter-bar">
+<div class="meter-fill {{ 'warning' if risk.current_daily_loss_pct > risk.daily_loss_limit_pct * 0.5 else '' }} {{ 'danger' if risk.current_daily_loss_pct > risk.daily_loss_limit_pct * 0.8 else '' }}"
+     style="width:{{ (risk.current_daily_loss_pct / risk.daily_loss_limit_pct * 100)|min(100) }}%"></div>
+</div>
+<div class="meter-value">{{ "{:.1f}".format(risk.current_daily_loss_pct) }}% / {{ "{:.1f}".format(risk.daily_loss_limit_pct) }}%</div>
+</div>
+
+<div class="meter">
+<div class="meter-label">Fee Budget</div>
+<div class="meter-bar">
+<div class="meter-fill {{ 'warning' if risk.current_fee_pct > risk.fee_budget_pct * 0.5 else '' }} {{ 'danger' if risk.current_fee_pct > risk.fee_budget_pct * 0.8 else '' }}"
+     style="width:{{ (risk.current_fee_pct / risk.fee_budget_pct * 100)|min(100) }}%"></div>
+</div>
+<div class="meter-value">{{ "{:.1f}".format(risk.current_fee_pct) }}% / {{ "{:.1f}".format(risk.fee_budget_pct) }}%</div>
+</div>
+</div>
+</section>
+
+{% endblock %}

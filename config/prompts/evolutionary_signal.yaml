@@ -1,0 +1,85 @@
+name: "evolutionary_signal"
+version: "1.0.0"
+description: "Self-evolving signal generation with performance feedback loop"
+
+system_prompt: |
+  You are an adaptive quantitative trading analyst that learns from past performance.
+  
+  CORE PRINCIPLES:
+  1. Adapt your analysis based on recent win/loss patterns
+  2. If recent trades are losing, become more conservative
+  3. If recent trades are winning, maintain or slightly increase confidence
+  4. Output MUST be valid JSON matching the schema
+  
+  PERFORMANCE ADAPTATION RULES:
+  - If win_rate > 60%: You can be moderately aggressive (confidence 0.6-0.85)
+  - If win_rate 40-60%: Stay neutral/conservative (confidence 0.5-0.7)
+  - If win_rate < 40%: Be very conservative (confidence 0.4-0.6)
+  - If last 3 trades were losses: Force confidence below 0.55
+  - If max_drawdown > 10%: Reduce position size implied by confidence
+  
+  Output JSON schema:
+  {
+    "signal": "LONG" | "SHORT" | "NEUTRAL",
+    "confidence": number (0.0-1.0, adjusted by performance),
+    "reasoning": "string with clear logic",
+    "regime": "trending_up" | "trending_down" | "ranging" | "volatile" | "accumulation" | "unknown",
+    "risk_params": {
+      "stop_loss_pct": number (0.5-50.0),
+      "take_profit_pct": number (0.5-100.0, must be > stop_loss)
+    }
+  }
+
+user_template: |
+  Analyze the market and adapt to recent performance.
+
+  CURRENT MARKET DATA:
+  {{market_data}}
+
+  {{recent_trades}}
+
+  PERFORMANCE SUMMARY:
+  {{performance}}
+
+  ADAPTATION INSTRUCTIONS:
+  1. Review recent trade performance
+  2. Adjust confidence based on win/loss streak
+  3. If losing streak ≥3 trades, strongly prefer NEUTRAL
+  4. Provide reasoning that references both market data AND recent performance
+  5. Set risk parameters appropriate to current volatility
+
+  Respond ONLY with the JSON object.
+
+output_schema:
+  type: "object"
+  required: ["signal", "confidence", "reasoning", "regime", "risk_params"]
+  properties:
+    signal:
+      type: "string"
+      enum: ["LONG", "SHORT", "NEUTRAL"]
+    confidence:
+      type: "number"
+      minimum: 0.0
+      maximum: 1.0
+    reasoning:
+      type: "string"
+      maxLength: 2000
+    regime:
+      type: "string"
+      enum: ["trending_up", "trending_down", "ranging", "volatile", "accumulation", "unknown"]
+    risk_params:
+      type: "object"
+      required: ["stop_loss_pct", "take_profit_pct"]
+      properties:
+        stop_loss_pct:
+          type: "number"
+          minimum: 0.5
+          maximum: 50.0
+        take_profit_pct:
+          type: "number"
+          minimum: 0.5
+          maximum: 100.0
+
+variables: ["market_data", "recent_trades", "performance"]
+max_tokens: 1000
+temperature: 0.15

@@ -1,0 +1,90 @@
+# =============================================================================
+# HYPER-ALPHA-ARENA V2 — AGGRESSIVE GITIGNORE
+# NEVER commit secrets, databases, logs, or compiled artifacts
+# =============================================================================
+
+# Secrets & Environment
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Databases (SQLite, etc.)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+data/
+
+# Logs
+logs/
+*.log
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pre-commit
+.pre-commit-config.yaml.bak
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Bot-specific: NEVER commit these
+audit.db
+backtest_results/
+paper_trades/
+live_trades/

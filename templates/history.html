@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}History &mdash; Hyper-Alpha-Arena{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+<h2>&#128220; Trade History</h2>
+<table class="data-table">
+<thead>
+<tr>
+<th>Time</th>
+<th>Symbol</th>
+<th>Direction</th>
+<th>Entry</th>
+<th>Exit</th>
+<th>P&L</th>
+<th>P&L %</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+{% for trade in history %}
+<tr>
+<td>{{ trade.time }}</td>
+<td><strong>{{ trade.symbol }}</strong></td>
+<td class="direction {{ 'long' if trade.direction == 'LONG' else 'short' }}">{{ trade.direction }}</td>
+<td>${{ "{:,.2f}".format(trade.entry) }}</td>
+<td>${{ "{:,.2f}".format(trade.exit) }}</td>
+<td class="{{ 'positive' if trade.pnl >= 0 else 'negative' }}">
+{{ '+' if trade.pnl >= 0 else '' }}${{ "{:,.2f}".format(trade.pnl) }}
+</td>
+<td class="{{ 'positive' if trade.pnl >= 0 else 'negative' }}">
+{{ '+' if trade.pnl >= 0 else '' }}{{ "{:.2f}".format(trade.pnl_pct) }}%
+</td>
+<td>{{ trade.reason }}</td>
+</tr>
+{% endfor %}
+{% if not history %}
+<tr><td colspan="8" class="empty">No trade history.</td></tr>
+{% endif %}
+</tbody>
+</table>
+</section>
+
+{% endblock %}

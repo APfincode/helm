@@ -1,0 +1,28 @@
+# Backtest Configuration
+# This file is safe to commit — contains no secrets
+
+# Backtest parameters
+backtest:
+  initial_capital: 10000.0
+  max_leverage: 3.0
+  position_size_pct: 0.10
+  use_confidence_sizing: false
+  max_concurrent_positions: 3
+
+# Fee structure (Hyperliquid defaults)
+fees:
+  taker_fee_pct: 0.035
+  maker_fee_pct: 0.01
+  slippage_pct: 0.02
+  use_slippage: true
+
+# Risk management
+risk:
+  max_drawdown_pct: 15.0
+  daily_loss_limit_pct: 5.0
+  default_stop_loss_pct: 2.0
+  default_take_profit_pct: 4.0
+
+# Data
+symbol: BTC
+timeframe: 1h

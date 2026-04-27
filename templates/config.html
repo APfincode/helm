@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Configuration &mdash; Hyper-Alpha-Arena{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+<h2>&#9881;&#65039; Bot Configuration</h2>
+<p class="panel-desc">Edit configuration files directly. Changes are saved immediately to <code>config/*.yaml</code>.</p>
+
+{% for key, section in config.items() %}
+<div class="config-section">
+<h3>{{ key.replace('_', ' ').title() }}</h3>
+<pre class="config-editor" contenteditable="true" data-key="{{ key }}">{{ section | tojson(indent=2) }}</pre>
+<button class="btn-save" onclick="saveConfig('{{ key }}')">&#128190; Save</button>
+<span class="save-status" id="status-{{ key }}"></span>
+</div>
+{% endfor %}
+
+</section>
+
+<script>
+async function saveConfig(key) {
+  const el = document.querySelector(`pre[data-key="${key}"]`);
+  const status = document.getElementById(`status-${key}`);
+  try {
+    const value = JSON.parse(el.innerText);
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value }),
+    });
+    const data = await res.json();
+    status.textContent = data.success ? 'Saved!' : 'Failed';
+    status.className = 'save-status ' + (data.success ? 'success' : 'error');
+  } catch (e) {
+    status.textContent = 'Invalid JSON: ' + e.message;
+    status.className = 'save-status error';
+  }
+  setTimeout(() => { status.textContent = ''; }, 3000);
+}
+</script>
+
+{% endblock %}

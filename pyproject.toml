@@ -1,0 +1,170 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "helm"
+version = "0.1.0"
+description = "AI-driven perpetual futures trading bot for Hyperliquid. LLM signals, Darwinian prompt evolution, 12-circuit risk harness."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Anagh Prabhakaran"}
+]
+keywords = ["trading", "crypto", "ai", "llm", "hyperliquid", "backtesting", "perpetuals"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial",
+]
+
+dependencies = [
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.25.0",
+    "websockets>=12.0",
+    "pandas>=2.1.0",
+    "numpy>=1.26.0",
+    "sqlalchemy>=2.0.0",
+    "aiosqlite>=0.19.0",
+    "pyyaml>=6.0.1",
+    "python-telegram-bot>=20.7",
+    "hyperliquid-python-sdk>=0.8.0",
+    "python-binance>=1.0.19",
+    "ta-lib>=0.4.28",
+    "cryptography>=41.0.0",
+    "structlog>=23.2.0",
+    "tenacity>=8.2.0",
+    "rich>=13.7.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.27.0",
+    "jinja2>=3.1.0",
+    "sse-starlette>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "hypothesis>=6.92.0",
+    "black>=23.12.0",
+    "ruff>=0.1.8",
+    "mypy>=1.7.0",
+    "bandit>=1.7.6",
+    "safety>=2.3.0",
+    "pre-commit>=3.6.0",
+]
+
+[project.scripts]
+helm = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+# =============================================================================
+# BLACK — Code formatting
+# =============================================================================
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
+
+# =============================================================================
+# RUFF — Fast Python linter
+# =============================================================================
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "PL",  # Pylint
+    "S",   # flake8-bandit (security)
+    "BLE", # flake8-blind-except
+    "FBT", # flake8-boolean-trap
+    "C90", # mccabe complexity
+]
+ignore = [
+    "E501",  # Line too long (handled by black)
+    "S101",  # Use of assert (allowed in tests)
+    "S311",  # Standard pseudo-random generators (not for crypto)
+]
+
+[tool.ruff.per-file-ignores]
+"tests/**/*" = ["S101", "PLR2004"]
+"scripts/**/*" = ["S603", "S607"]
+
+[tool.ruff.mccabe]
+max-complexity = 12
+
+# =============================================================================
+# MYPY — Static type checking
+# =============================================================================
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+show_error_codes = true
+
+# =============================================================================
+# PYTEST — Testing
+# =============================================================================
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "--cov=src --cov-report=term-missing --cov-report=html -v"
+markers = [
+    "security: Security-specific tests",
+    "slow: Slow tests (skip in fast mode)",
+    "integration: Integration tests requiring external services",
+]
+
+# =============================================================================
+# BANDIT — Security linter
+# =============================================================================
+[tool.bandit]
+exclude_dirs = ["tests", "scripts", ".venv", "venv"]
+skips = ["B101", "B311"]
+
+# =============================================================================
+# COVERAGE
+# =============================================================================
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/test_*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

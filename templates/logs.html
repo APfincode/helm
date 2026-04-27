@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Logs &mdash; Hyper-Alpha-Arena{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+<h2>&#128220; Bot Logs</h2>
+<pre class="log-viewer">{% for line in logs %}{{ line }}{% endfor %}</pre>
+</section>
+
+{% endblock %}

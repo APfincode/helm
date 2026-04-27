@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Positions &mdash; Hyper-Alpha-Arena{% endblock %}
+
+{% block content %}
+
+<section class="panel">
+<h2>&#128200; Open Positions</h2>
+<table class="data-table">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Direction</th>
+<th>Size</th>
+<th>Entry</th>
+<th>Mark</th>
+<th>Unrealized</th>
+<th>Leverage</th>
+<th>Stop</th>
+<th>TP</th>
+<th>Time</th>
+</tr>
+</thead>
+<tbody>
+{% for pos in positions %}
+<tr>
+<td><strong>{{ pos.symbol }}</strong></td>
+<td class="direction {{ 'long' if pos.direction == 'LONG' else 'short' }}">{{ pos.direction }}</td>
+<td>{{ "{:.4f}".format(pos.size) }}</td>
+<td>${{ "{:,.2f}".format(pos.entry) }}</td>
+<td>${{ "{:,.2f}".format(pos.mark) }}</td>
+<td class="{{ 'positive' if pos.unrealized >= 0 else 'negative' }}">
+{{ '+' if pos.unrealized >= 0 else '' }}${{ "{:,.2f}".format(pos.unrealized) }}
+</td>
+<td>{{ pos.leverage }}x</td>
+<td>${{ "{:,.2f}".format(pos.stop) }}</td>
+<td>${{ "{:,.2f}".format(pos.tp) }}</td>
+<td>{{ pos.time_in_trade }}</td>
+</tr>
+{% endfor %}
+{% if not positions %}
+<tr><td colspan="10" class="empty">No open positions.</td></tr>
+{% endif %}
+</tbody>
+</table>
+</section>
+
+{% endblock %}

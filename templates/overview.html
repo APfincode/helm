@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Overview &mdash; Hyper-Alpha-Arena{% endblock %}
+
+{% block content %}
+
+<section class="card-grid">
+<div class="card highlight">
+<div class="card-label">Equity</div>
+<div class="card-value">${{ "{:,.2f}".format(equity) }}</div>
+<div class="card-sub {{ 'positive' if day_pnl >= 0 else 'negative' }}">
+{{ '+' if day_pnl >= 0 else '' }}${{ "{:,.2f}".format(day_pnl) }} ({{ '+' if day_pnl >= 0 else '' }}{{ "{:.1f}".format(day_pnl_pct) }}%)
+</div>
+</div>
+
+<div class="card">
+<div class="card-label">Open Positions</div>
+<div class="card-value">{{ open_count }}</div>
+<div class="card-sub">{{ positions|length }} active</div>
+</div>
+
+<div class="card">
+<div class="card-label">Today Trades</div>
+<div class="card-value">{{ status.trades_executed }}</div>
+<div class="card-sub">{{ status.trades_rejected }} rejected</div>
+</div>
+
+<div class="card">
+<div class="card-label">Win Rate</div>
+<div class="card-value">{{ "{:.0f}".format(win_rate) }}%</div>
+<div class="card-sub">All time</div>
+</div>
+</section>
+
+<section class="panel">
+<h2>&#128200; Active Positions</h2>
+<table class="data-table">
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Direction</th>
+<th>Size</th>
+<th>Entry</th>
+<th>Mark</th>
+<th>Unrealized</th>
+<th>Leverage</th>
+<th>Stop</th>
+<th>TP</th>
+</tr>
+</thead>
+<tbody>
+{% for pos in positions %}
+<tr>
+<td><strong>{{ pos.symbol }}</strong></td>
+<td class="direction {{ 'long' if pos.direction == 'LONG' else 'short' }}">{{ pos.direction }}</td>
+<td>{{ "{:.4f}".format(pos.size) }}</td>
+<td>${{ "{:,.2f}".format(pos.entry) }}</td>
+<td>${{ "{:,.2f}".format(pos.mark) }}</td>
+<td class="{{ 'positive' if pos.unrealized >= 0 else 'negative' }}">
+{{ '+' if pos.unrealized >= 0 else '' }}${{ "{:,.2f}".format(pos.unrealized) }}
+</td>
+<td>{{ pos.leverage }}x</td>
+<td>${{ "{:,.2f}".format(pos.stop) }}</td>
+<td>${{ "{:,.2f}".format(pos.tp) }}</td>
+</tr>
+{% endfor %}
+{% if not positions %}
+<tr><td colspan="9" class="empty">No open positions.</td></tr>
+{% endif %}
+</tbody>
+</table>
+</section>
+
+<section class="panel">
+<h2>&#128220; Recent Trades</h2>
+<table class="data-table compact">
+<thead>
+<tr>
+<th>Time</th>
+<th>Symbol</th>
+<th>Side</th>
+<th>Entry</th>
+<th>Exit</th>
+<th>P&L</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+{% for trade in history %}
+<tr>
+<td>{{ trade.time }}</td>
+<td><strong>{{ trade.symbol }}</strong></td>
+<td class="direction {{ 'long' if trade.direction == 'LONG' else 'short' }}">{{ trade.direction }}</td>
+<td>${{ "{:,.2f}".format(trade.entry) }}</td>
+<td>${{ "{:,.2f}".format(trade.exit) }}</td>
+<td class="{{ 'positive' if trade.pnl >= 0 else 'negative' }}">
+{{ '+' if trade.pnl >= 0 else '' }}${{ "{:,.2f}".format(trade.pnl) }}
+</td>
+<td>{{ trade.reason }}</td>
+</tr>
+{% endfor %}
+{% if not history %}
+<tr><td colspan="7" class="empty">No recent trades.</td></tr>
+{% endif %}
+</tbody>
+</table>
+</section>
+
+{% endblock %}
