@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://v3b.fal.media/files/b/0a97fbfe/Dz0axLqBivv_a4cojkudO_iMCWvdh.png" alt="HELM Banner" width="100%">
+  <img src="assets/banner.png" alt="HELM Banner" width="100%">
 </p>
 
 <h1 align="center">HELM</h1>
