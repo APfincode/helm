@@ -35,7 +35,8 @@ from src.execution.hyperliquid_executor import HyperliquidExecutor, ExecutorConf
 from src.execution.paper_trading import PaperTradingExecutor
 from src.execution.position_tracker import PositionTracker, PositionState, PositionStatus
 from src.security.audit_logger import AuditLogger, EventType, Severity
-from src.telegram import TelegramBot
+from src.telegram.bot import TelegramBot as _TelegramBot, TelegramConfig as _TelegramConfig
+TelegramBot = _TelegramBot
 
 
 logger = logging.getLogger(__name__)

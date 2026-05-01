@@ -1,10 +1,10 @@
-"""
-Web UI Server — Hermes-inspired lightweight dashboard.
+"""Helm Web UI Server — FastAPI + Jinja2 dark-theme dashboard.
 
-No build step, no bundler, no React. Pure FastAPI + Jinja2 + vanilla JS + ~250 LOC CSS.
+Connects to the live `StateDB` so data is real (not placeholders).
+No build step, no bundler, no React. Pure Python + vanilla JS.
 
 Routes:
-  GET /              → Overview (default)
+  GET /              → Overview
   GET /positions     → Open positions
   GET /history       → Trade history
   GET /signals       → LLM signal log
@@ -17,7 +17,7 @@ API:
   POST /api/stop     → Emergency stop
   GET /api/config    → JSON (current config)
   POST /api/config   → JSON (update config)
-  GET /api/events    → SSE (live updates)
+  GET /api/events    → SSE stub (live updates)
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import yaml
 from fastapi import FastAPI, Request
@@ -45,6 +45,12 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 TEMPLATES_DIR = PROJECT_ROOT / "templates"
 STATIC_DIR = PROJECT_ROOT / "static"
 CONFIG_DIR = PROJECT_ROOT / "config"
+
+try:
+    from src.state.db import get_state_db, StateDB
+except ImportError:
+    get_state_db = None  # type: ignore
+    StateDB = None  # type: ignore
 
 
 def _load_yaml(path: Path) -> dict:
@@ -71,129 +77,66 @@ def _save_yaml(path: Path, data: dict) -> bool:
 
 
 class BotStateProvider:
-    """
-    Reads bot state from SQLite and config files.
-    
-    This is a read-only interface for the web UI. The trading bot
-    writes to these stores; the web UI only reads.
-    """
+    """Reads/writes live bot state from the shared SQLite database."""
 
-    def __init__(self) -> None:
-        self._db_path = PROJECT_ROOT / "data" / "bot_state.db"
+    _instance: Optional[BotStateProvider] = None
 
-    def get_status(self) -> dict:
-        """Get current bot status."""
-        # In production, this reads from SQLite. For now, return placeholder.
-        return {
-            "mode": "PAPER",
-            "running": True,
-            "equity": 12450.0,
-            "day_pnl": 234.0,
-            "day_pnl_pct": 1.9,
-            "open_positions": 2,
-            "total_exposure": 8500.0,
-            "unrealized_pnl": 165.0,
-            "signals_generated": 42,
-            "trades_executed": 15,
-            "trades_rejected": 8,
-        }
+    def __new__(cls, *args, **kwargs):
+        """Singleton so the UI and engine share one cache handle."""
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._db: Optional["StateDB"] = None
+        return cls._instance
 
-    def get_positions(self) -> list[dict]:
-        """Get open positions."""
-        return [
-            {
-                "symbol": "BTC",
-                "direction": "LONG",
-                "size": 0.10,
-                "entry": 94500.0,
-                "mark": 95400.0,
-                "unrealized": 90.0,
-                "leverage": 5.0,
-                "stop": 92000.0,
-                "tp": 98000.0,
-                "time_in_trade": "2h 15m",
-            },
-            {
-                "symbol": "ETH",
-                "direction": "SHORT",
-                "size": 1.50,
-                "entry": 3250.0,
-                "mark": 3200.0,
-                "unrealized": 75.0,
-                "leverage": 3.0,
-                "stop": 3400.0,
-                "tp": 3000.0,
-                "time_in_trade": "45m",
-            },
-        ]
+    def connect(self) -> None:
+        """Wire to the live StateDB.  Safe to call multiple times."""
+        if self._db is None and get_state_db is not None:
+            self._db = get_state_db()
 
-    def get_history(self, limit: int = 20) -> list[dict]:
-        """Get closed trade history."""
-        return [
-            {
-                "time": "14:32",
-                "symbol": "BTC",
-                "direction": "LONG",
-                "entry": 94000.0,
-                "exit": 95300.0,
-                "pnl": 130.0,
-                "pnl_pct": 1.38,
-                "reason": "take_profit",
-            },
-            {
-                "time": "11:15",
-                "symbol": "ETH",
-                "direction": "SHORT",
-                "entry": 3300.0,
-                "exit": 3250.0,
-                "pnl": 75.0,
-                "pnl_pct": 1.52,
-                "reason": "stop_loss",
-            },
-        ]
+    def connected(self) -> bool:
+        return self._db is not None
 
-    def get_signals(self, limit: int = 10) -> list[dict]:
-        """Get LLM signal log."""
-        return [
-            {
-                "time": "14:30",
-                "symbol": "BTC",
-                "direction": "LONG",
-                "confidence": 0.82,
-                "reasoning": "Bullish engulfing on 4h with volume confirmation. Funding slightly positive but not extreme.",
-                "regime": "trending_up",
-            },
-            {
-                "time": "13:00",
-                "symbol": "ETH",
-                "direction": "NEUTRAL",
-                "confidence": 0.45,
-                "reasoning": "Consolidating near support. Wait for breakout confirmation.",
-                "regime": "ranging",
-            },
-        ]
+    # ------------------------------------------------------------------
+    # Read API (delegating to StateDB)
+    # ------------------------------------------------------------------
+    def get_status(self) -> dict[str, Any]:
+        if self._db:
+            return self._db.get_status()
+        return {}
 
-    def get_risk(self) -> dict:
-        """Get risk guard status."""
-        return {
-            "halted": False,
-            "halt_reason": "",
-            "max_drawdown_pct": 15.0,
-            "current_drawdown_pct": 3.2,
-            "daily_loss_limit_pct": 5.0,
-            "current_daily_loss_pct": 1.1,
-            "fee_budget_pct": 2.0,
-            "current_fee_pct": 0.8,
-            "circuit_breakers": [
-                {"name": "Max Drawdown", "limit": "15%", "current": "3.2%", "status": "armed"},
-                {"name": "Daily Loss", "limit": "5%", "current": "1.1%", "status": "armed"},
-                {"name": "Fee Budget", "limit": "2%", "current": "0.8%", "status": "armed"},
-                {"name": "Min Trade Interval", "limit": "4h", "current": "OK", "status": "armed"},
-                {"name": "Max Positions", "limit": "3", "current": "2/3", "status": "armed"},
-            ],
-        }
+    def get_positions(self) -> list[dict[str, Any]]:
+        if self._db:
+            try:
+                return self._db.get_positions(open_only=True)
+            except Exception:
+                return []
+        return []
 
-    def get_config(self) -> dict:
+    def get_history(self, limit: int = 20) -> list[dict[str, Any]]:
+        if self._db:
+            try:
+                return self._db.get_history(limit)
+            except Exception:
+                return []
+        return []
+
+    def get_signals(self, limit: int = 10) -> list[dict[str, Any]]:
+        if self._db:
+            try:
+                return self._db.get_signals(limit)
+            except Exception:
+                return []
+        return []
+
+    def get_risk(self) -> dict[str, Any]:
+        if self._db:
+            try:
+                return self._db.get_risk()
+            except Exception:
+                return {"halted": False, "circuit_breakers": []}
+        return {"halted": False, "circuit_breakers": []}
+
+    def get_config(self) -> dict[str, Any]:
         """Get current configuration from YAML files."""
         config = {}
         for yaml_file in CONFIG_DIR.glob("*.yaml"):
@@ -207,25 +150,25 @@ class BotStateProvider:
         return _save_yaml(path, data)
 
     def get_logs(self, limit: int = 50) -> list[str]:
-        """Get recent log lines."""
-        log_path = PROJECT_ROOT / "logs" / "bot.log"
-        if not log_path.exists():
-            return ["No log file found."]
-        try:
-            with open(log_path, "r") as f:
-                lines = f.readlines()
-            return lines[-limit:] if lines else ["Log file is empty."]
-        except Exception as e:
-            return [f"Error reading logs: {e}"]
+        if self._db:
+            try:
+                return self._db.get_logs(limit)
+            except Exception:
+                return ["No logs available."]
+        return ["Helm not running — no logs yet."]
 
 
-# Global state provider
+# Global singleton ─ lazily connected in create_app()
 _state = BotStateProvider()
 
 
-def create_app() -> FastAPI:
+def create_app(
+    on_stop: Optional[Callable[[], None]] = None,
+    on_status: Optional[Callable[[], dict]] = None,
+) -> FastAPI:
     """Create and configure the FastAPI application."""
-    app = FastAPI(title="Hyper-Alpha-Arena Dashboard", version="0.1.0")
+    _state.connect()
+    app = FastAPI(title="Helm Dashboard", version="0.1.0")
 
     # Static files
     if STATIC_DIR.exists():
@@ -233,11 +176,10 @@ def create_app() -> FastAPI:
 
     # Templates
     templates = Jinja2Templates(directory=TEMPLATES_DIR)
-    templates.env.filters["min"] = lambda v, arg: min(v, arg)
 
     def _render(request: Request, template: str, active_tab: str, **ctx) -> HTMLResponse:
         """Helper to render a template with common context."""
-        status = _state.get_status()
+        status = _state.get_status() or {}
         return templates.TemplateResponse(
             request,
             template,
@@ -254,7 +196,7 @@ def create_app() -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     async def page_overview(request: Request) -> HTMLResponse:
-        status = _state.get_status()
+        status = _state.get_status() or {}
         positions = _state.get_positions()
         history = _state.get_history(limit=5)
         return _render(
@@ -265,7 +207,7 @@ def create_app() -> FastAPI:
             day_pnl=status.get("day_pnl", 0),
             day_pnl_pct=status.get("day_pnl_pct", 0),
             open_count=status.get("open_positions", 0),
-            win_rate=58.0,  # placeholder
+            win_rate=status.get("win_rate", 0.0),
         )
 
     @app.get("/positions", response_class=HTMLResponse)
@@ -304,7 +246,8 @@ def create_app() -> FastAPI:
 
     @app.get("/api/status")
     async def api_status() -> JSONResponse:
-        return JSONResponse(_state.get_status())
+        status = on_status() if on_status else _state.get_status()
+        return JSONResponse(status or {})
 
     @app.get("/api/positions")
     async def api_positions() -> JSONResponse:
@@ -336,8 +279,10 @@ def create_app() -> FastAPI:
 
     @app.post("/api/stop")
     async def api_stop() -> JSONResponse:
-        # In production, this would call engine.emergency_stop()
-        logger.critical("Emergency stop requested via web UI")
+        """Emergency stop endpoint: invoke provided callback."""
+        logger.critical("Emergency stop triggered via web UI")
+        if on_stop:
+            await asyncio.to_thread(on_stop) if not asyncio.iscoroutinefunction(on_stop) else on_stop()
         return JSONResponse({"success": True, "message": "Emergency stop triggered"})
 
     return app
