@@ -27,8 +27,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Inject src into PYTHONPATH at runtime so imports work when invoked
-# both as `python src/main.py` and `python -m src.main
+# Load .env BEFORE any project imports
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+# Inject src into PYTHONPATH at runtime
 _ROOT = Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
